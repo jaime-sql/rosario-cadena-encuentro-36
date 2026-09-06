@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveBasePath } from "../src/lib/base-path";
+import { resolveBasePath, withBasePath } from "../src/lib/base-path";
 
 describe("resolveBasePath", () => {
   it("uses BASE_PATH when set (prod)", () => {
@@ -30,5 +30,31 @@ describe("resolveBasePath", () => {
 
   it("is empty for local next build", () => {
     expect(resolveBasePath({})).toBe("");
+  });
+});
+
+describe("withBasePath", () => {
+  it("leaves public assets unprefixed in local builds", () => {
+    expect(withBasePath("/logos/encuentros-conyugales.jpg", {})).toBe(
+      "/logos/encuentros-conyugales.jpg",
+    );
+  });
+
+  it("prefixes assets for GitHub Pages", () => {
+    expect(
+      withBasePath("/logos/unidad-liturgia-oracion.jpg", { GITHUB_PAGES: "true" }),
+    ).toBe("/rosario-cadena-encuentro-36/logos/unidad-liturgia-oracion.jpg");
+  });
+
+  it("prefixes assets for Cloudflare prod", () => {
+    expect(withBasePath("/logos/encuentros-conyugales.jpg", { CLOUDFLARE_PROD: "true" })).toBe(
+      "/rosariocadena/logos/encuentros-conyugales.jpg",
+    );
+  });
+
+  it("normalizes a path without a leading slash", () => {
+    expect(withBasePath("logos/encuentros-conyugales.jpg", { BASE_PATH: "/rosariocadena" })).toBe(
+      "/rosariocadena/logos/encuentros-conyugales.jpg",
+    );
   });
 });

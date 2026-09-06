@@ -21,3 +21,13 @@ export function resolveBasePath(
   }
   return "";
 }
+
+/** Prefix a root-relative public asset path with the active `basePath`. */
+export function withBasePath(
+  path: string,
+  env: Record<string, string | undefined> = process.env,
+): string {
+  const base = resolveBasePath(env);
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${normalized}`;
+}
