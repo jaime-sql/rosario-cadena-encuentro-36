@@ -1,4 +1,4 @@
 :HL["/rosario-cadena-encuentro-36/_next/static/chunks/021zrq108p-bz.css","style"]
 :HL["/rosario-cadena-encuentro-36/_next/static/media/47df9ba1c7236d3b-s.p.137759vg1sbmi.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/rosario-cadena-encuentro-36/_next/static/media/68d403cf9f2c68c5-s.p.20at88_q9f_kt.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-0:{"tree":{"name":"","param":null,"prefetchHints":4112,"slots":{"children":{"name":"organizador","param":null,"prefetchHints":4160,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"ZrvQAutIlVJjIO7dFygPq"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4112,"slots":{"children":{"name":"organizador","param":null,"prefetchHints":4160,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}}}},"staleTime":300,"buildId":"FPm9KI4plppz0Qe4fkjuD"}
