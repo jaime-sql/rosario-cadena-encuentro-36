@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -17,6 +15,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      supabase_ready: ${{ steps.supabase.outputs.ready }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,6 +25,17 @@ jobs:
           cache: npm
       - run: npm ci --no-fund --no-audit
       - run: npm test
+      - name: Check Supabase secrets
+        id: supabase
+        env:
+          URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -n "$URL" ] && [ -n "$KEY" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build static site
         run: npm run build
         env:
@@ -35,16 +46,30 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
       - name: Disable Jekyll
         run: touch out/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: site
           path: out
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Download site
+        if: needs.build.outputs.supabase_ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+      - name: Publish to gh-pages
+        if: needs.build.outputs.supabase_ready == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
+          force_orphan: true
+      - name: Keep existing Pages site
+        if: needs.build.outputs.supabase_ready != 'true'
+        run: echo "Actions secrets are not set; not overwriting the published gh-pages site."
