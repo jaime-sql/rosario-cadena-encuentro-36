@@ -69,6 +69,7 @@ create or replace function leer_parametros()
 returns parametros
 language plpgsql
 stable
+set search_path = public
 as $$
 declare
   fila parametros;
@@ -81,9 +82,12 @@ begin
 end;
 $$;
 
+revoke all on function leer_parametros() from public, anon, authenticated;
+
 create or replace function validar_reserva()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 declare
   p parametros;
@@ -124,6 +128,8 @@ begin
   return new;
 end;
 $$;
+
+revoke all on function validar_reserva() from public, anon, authenticated;
 
 drop trigger if exists bookings_validar_turno on bookings;
 drop trigger if exists bookings_validar_reserva on bookings;
