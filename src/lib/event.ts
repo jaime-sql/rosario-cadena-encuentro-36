@@ -15,6 +15,8 @@ export const EVENT_GROUP = "MEC-SJB · El Salvador";
 export const EVENT_UNIT = "Unidad de Liturgia y Oración MEC-SJB";
 
 export const LOCAL_STORAGE_KEY = "rosario-cadena-reservas-v1";
+export const LOCAL_PARAMS_KEY = "rosario-cadena-parametros-v1";
+export const LOCAL_PIN_KEY = "rosario-cadena-org-pin-v1";
 export const ORGANIZER_SESSION_KEY = "rosario-cadena-org-ok";
 
 /** PIN de respaldo solo si no hay ORG_PIN en el entorno (modo local). */

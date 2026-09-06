@@ -36,5 +36,11 @@ export function isSupabaseConfigured(): boolean {
  * En GitHub Pages el PIN real vive en la tabla configuracion de Supabase (ORG_PIN).
  */
 export function localOrgPin(): string {
+  if (typeof window !== "undefined") {
+    const stored = clean(window.localStorage.getItem("rosario-cadena-org-pin-v1") ?? "");
+    if (stored) {
+      return stored;
+    }
+  }
   return clean(process.env.NEXT_PUBLIC_ORG_PIN) || clean(process.env.ORG_PIN) || "sjb36";
 }

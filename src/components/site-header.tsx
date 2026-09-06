@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EventoSubtitulo } from "@/components/evento-rango";
 import { EVENT_GROUP, EVENT_PARISH, EVENT_TITLE, EVENT_UNIT } from "@/lib/event";
 import { EncuentrosLogo, LiturgiaLogo } from "@/components/logos";
 
@@ -25,11 +26,7 @@ export function SiteHeader({ compact = false }: { compact?: boolean }) {
         <div className="text-center">
           <p className="text-[11px] font-semibold tracking-[0.22em] text-[color:var(--gold)] uppercase">{EVENT_PARISH} · {EVENT_GROUP}</p>
           <h1 className="font-heading mt-1 text-2xl font-semibold tracking-wide text-primary uppercase sm:text-3xl">{EVENT_TITLE}</h1>
-          {!compact && (
-            <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Inscripción de turnos de 30 minutos, del sábado 12 de septiembre a las 06:00 a.m. hasta el domingo 13 de septiembre a las 04:30 p.m. (hora de El Salvador).
-            </p>
-          )}
+          {!compact && <EventoSubtitulo />}
           <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
             <Link href="/" className="font-medium text-primary underline-offset-4 hover:underline">Turnos</Link>
             <Link href="/organizador/" className="text-muted-foreground underline-offset-4 hover:text-primary hover:underline">Coordinación</Link>

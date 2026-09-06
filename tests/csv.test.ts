@@ -9,7 +9,7 @@ describe("CSV del organizador", () => {
         slotEnd: "2026-09-12T06:30:00-06:00",
         espososResponsables: "Cesar y Mercy Avalos",
         numeroEncuentro: 164,
-        telefonos: "7826-6416",
+        telefonos: "78266416",
       },
     ]);
     expect(csv).toContain("HORA INICIO");
@@ -19,7 +19,7 @@ describe("CSV del organizador", () => {
     expect(csv).toContain("TELÉFONOS");
     expect(csv).toContain("Cesar y Mercy Avalos");
     expect(csv).toContain("164");
-    expect(csv).toContain("7826-6416");
+    expect(csv).toContain("78266416");
     expect(csv).toContain("06:00 a.m.");
   });
 });
