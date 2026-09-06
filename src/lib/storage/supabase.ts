@@ -8,7 +8,7 @@ import {
   type ReservaCompleta,
   type ReservaPublica,
 } from "../types";
-import { parseBooking, parseTelefonoConsulta } from "../validation";
+import { parseBooking, parseTelefonoConsulta, parseTelefonoOrganizador } from "../validation";
 import { mapStorageError } from "./errors";
 
 type PublicRow = {
@@ -187,6 +187,27 @@ export async function cancelSupabase(
   if (error) {
     throw mapStorageError(error, "No se pudo cancelar la reserva.");
   }
+}
+
+export async function updateTelefonoSupabase(
+  pin: string,
+  slotStart: string,
+  telefonos: string,
+  client: SupabaseClient = createSupabaseBrowserClient(),
+): Promise<string> {
+  const tel = parseTelefonoOrganizador(telefonos);
+  const { data, error } = await client.rpc("actualizar_telefono_organizador", {
+    pin,
+    p_slot_inicio: canonicalIso(slotStart),
+    p_telefonos: tel,
+  });
+  if (error) {
+    throw mapStorageError(error, "No se pudo actualizar el teléfono.");
+  }
+  if (typeof data === "string" && data.trim() !== "") {
+    return data;
+  }
+  return tel;
 }
 
 export async function listOrganizerSupabase(

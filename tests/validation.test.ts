@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseBooking } from "../src/lib/validation";
+import { parseBooking, parseTelefonoOrganizador } from "../src/lib/validation";
 import { isDigitsOnlyTelefono, normalizeTelefono, telefonoValido } from "../src/lib/phone";
 
 const valid = {
@@ -42,6 +42,14 @@ describe("validación de reserva", () => {
     expect(() => parseBooking({ ...valid, telefonos: "abc-defg" })).toThrow();
     expect(() => parseBooking({ ...valid, telefonos: "7826-6416" })).toThrow(/dígitos/i);
     expect(() => parseBooking({ ...valid, telefonos: "7826 6416" })).toThrow(/dígitos/i);
+  });
+
+  it("el organizador acepta 8 a 15 dígitos tras quitar lo que no sea número", () => {
+    expect(parseTelefonoOrganizador("79262416")).toBe("79262416");
+    expect(parseTelefonoOrganizador("7926-2416")).toBe("79262416");
+    expect(() => parseTelefonoOrganizador("")).toThrow(/teléfono/i);
+    expect(() => parseTelefonoOrganizador("abc")).toThrow(/dígitos/i);
+    expect(() => parseTelefonoOrganizador("123")).toThrow(/dígitos/i);
   });
 
   it("rechaza un horario que no es turno del Rosario", () => {

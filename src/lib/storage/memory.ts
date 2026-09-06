@@ -16,7 +16,7 @@ import {
   type ReservaCompleta,
   type ReservaPublica,
 } from "../types";
-import { parseBooking, parseTelefonoConsulta } from "../validation";
+import { parseBooking, parseTelefonoConsulta, parseTelefonoOrganizador } from "../validation";
 import { LOCAL_ORG_PIN } from "../event";
 
 export class MemoryReservasStore {
@@ -115,6 +115,21 @@ export class MemoryReservasStore {
     };
     this.byStart.set(nextStart, moved);
     return toReservaPublica(moved);
+  }
+
+  updateTelefono(pin: string, slotStart: string, telefonos: string): string {
+    this.assertPin(pin);
+    const start = canonicalIso(slotStart);
+    const reserva = this.byStart.get(start);
+    if (!reserva) {
+      throw new ReservaNoEncontradaError();
+    }
+    const tel = parseTelefonoOrganizador(telefonos);
+    if (tel !== reserva.telefonos) {
+      this.assertMaxPorTelefono(tel, start);
+    }
+    reserva.telefonos = tel;
+    return tel;
   }
 
   cancel(telefonos: string, slotStart: string, now: Date = new Date()): void {

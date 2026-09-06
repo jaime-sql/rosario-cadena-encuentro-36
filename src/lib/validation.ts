@@ -103,3 +103,16 @@ export function parseTelefonoConsulta(value: string): string {
   }
   return digits;
 }
+
+/** Misma regla que la reserva: 8–15 dígitos tras quitar lo que no sea número. */
+export function parseTelefonoOrganizador(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    throw new Error("Indique un teléfono de contacto.");
+  }
+  const digits = normalizeTelefono(trimmed);
+  if (digits.length < 8 || digits.length > 15) {
+    throw new Error("El teléfono debe tener solo dígitos (8 a 15).");
+  }
+  return digits;
+}

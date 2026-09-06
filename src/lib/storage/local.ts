@@ -102,3 +102,10 @@ export function cancelLocal(telefonos: string, slotStart: string, now?: Date): v
   memory.cancel(telefonos, slotStart, now);
   persist(memory, pin);
 }
+
+export function updateTelefonoLocal(pin: string, slotStart: string, telefonos: string): string {
+  const memory = new MemoryReservasStore(localOrgPin(), readSeed(), readLocalParams());
+  const saved = memory.updateTelefono(pin, slotStart, telefonos);
+  persist(memory, pin);
+  return saved;
+}
