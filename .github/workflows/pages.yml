@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm install --no-fund --no-audit
+      - run: npm ci --no-fund --no-audit
       - run: npm test
       - name: Build static site
         run: npm run build
