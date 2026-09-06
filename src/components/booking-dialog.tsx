@@ -86,9 +86,9 @@ export function BookingDialog({ slot, open, onOpenChange, onBooked, params = DEF
         ) : (
           <form id="reserva-form" onSubmit={onSubmit} className="grid gap-3">
             {formError && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>}
-            <Field id="esposos" label="Esposos responsables" value={espososResponsables} onChange={setEspososResponsables} error={errors.espososResponsables} placeholder="Cesar y Mercy Avalos" autoComplete="name" />
-            <Field id="encuentro" label="No. encuentro" value={numeroEncuentro} onChange={setNumeroEncuentro} error={errors.numeroEncuentro} placeholder="164" inputMode="numeric" />
-            <Field id="telefonos" label="Teléfono (solo dígitos)" value={telefonos} onChange={setTelefonos} error={errors.telefonos} placeholder="78266416" inputMode="numeric" autoComplete="tel" hint="Solo dígitos, sin espacios ni guiones. No se muestra en la lista pública." />
+            <Field id="esposos" label="Esposos responsables" value={espososResponsables} onChange={setEspososResponsables} error={errors.espososResponsables} placeholder="Nombres y apellidos" autoComplete="name" />
+            <Field id="encuentro" label="No. encuentro" value={numeroEncuentro} onChange={setNumeroEncuentro} error={errors.numeroEncuentro} placeholder="Número de encuentro" inputMode="numeric" />
+            <Field id="telefonos" label="Teléfono (solo dígitos)" value={telefonos} onChange={setTelefonos} error={errors.telefonos} placeholder="Solo dígitos" inputMode="numeric" autoComplete="tel" hint="Solo dígitos, sin espacios ni guiones. No se muestra en la lista pública." />
           </form>
         )}
         <DialogFooter>

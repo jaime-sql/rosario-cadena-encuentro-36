@@ -143,7 +143,7 @@ export function GestionarReservaDialog({ open, onOpenChange, params, turnos, onC
               onChange={(event) => setTelefonos(event.target.value)}
               inputMode="numeric"
               autoComplete="tel"
-              placeholder="78266416"
+              placeholder="Solo dígitos"
               className="h-10"
             />
           </form>
