@@ -36,6 +36,11 @@ export class DoubleBookingError extends Error {
   }
 }
 
+/** True when a failed reserve means the contested slot is no longer available. */
+export function shouldRefreshPublicAgenda(error: unknown): boolean {
+  return error instanceof DoubleBookingError;
+}
+
 export class InvalidPinError extends Error {
   readonly code = "pin_invalido" as const;
 
