@@ -153,6 +153,38 @@ describe("lista pública y organizador", () => {
     expect(store.listOrganizer("sjb36")[0]?.telefonos).toBe("78266416");
   });
 
+  it("el organizador guarda un teléfono válido", () => {
+    const store = new MemoryReservasStore("sjb36");
+    store.reserve(sample);
+    expect(store.updateTelefono("sjb36", sample.slotStart, "79262416")).toBe("79262416");
+    expect(store.listOrganizer("sjb36")[0]?.telefonos).toBe("79262416");
+    expect(JSON.stringify(store.listPublic())).not.toMatch(/7926/);
+  });
+
+  it("rechaza un teléfono sin dígitos y conserva el valor anterior", () => {
+    const store = new MemoryReservasStore("sjb36");
+    store.reserve(sample);
+    expect(() => store.updateTelefono("sjb36", sample.slotStart, "abc")).toThrow(/dígitos/i);
+    expect(store.listOrganizer("sjb36")[0]?.telefonos).toBe("78266416");
+  });
+
+  it("rechaza un teléfono vacío o corto y conserva el valor anterior", () => {
+    const store = new MemoryReservasStore("sjb36");
+    store.reserve(sample);
+    expect(() => store.updateTelefono("sjb36", sample.slotStart, "")).toThrow(/teléfono/i);
+    expect(() => store.updateTelefono("sjb36", sample.slotStart, "123")).toThrow(/dígitos/i);
+    expect(store.listOrganizer("sjb36")[0]?.telefonos).toBe("78266416");
+  });
+
+  it("no cambia el teléfono si el PIN es incorrecto o el cupo ya está lleno", () => {
+    const store = new MemoryReservasStore("sjb36");
+    store.reserve(sample);
+    store.reserve(secondSlot);
+    expect(() => store.updateTelefono("0000", sample.slotStart, "70001111")).toThrow(InvalidPinError);
+    expect(() => store.updateTelefono("sjb36", sample.slotStart, secondSlot.telefonos)).toThrow(MaxReservasError);
+    expect(store.listOrganizer("sjb36")[0]?.telefonos).toBe("78266416");
+  });
+
   it("combina la hoja de 69 turnos con las reservas", () => {
     const store = new MemoryReservasStore("sjb36");
     store.reserve(sample);

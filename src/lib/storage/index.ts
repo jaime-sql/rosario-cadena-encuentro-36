@@ -12,6 +12,7 @@ import {
   rescheduleLocal,
   reserveLocal,
   updateParamsLocal,
+  updateTelefonoLocal,
 } from "./local";
 import { isSupabaseConfigured } from "../env";
 import {
@@ -24,6 +25,7 @@ import {
   rescheduleSupabase,
   reserveSupabase,
   updateParamsSupabase,
+  updateTelefonoSupabase,
 } from "./supabase";
 
 export { isSupabaseConfigured } from "../env";
@@ -97,6 +99,17 @@ export async function listOrganizerReservas(pin: string): Promise<ReservaComplet
     return listOrganizerSupabase(pin);
   }
   return listOrganizerLocal(pin);
+}
+
+export async function updateTelefonoOrganizador(
+  pin: string,
+  slotStart: string,
+  telefonos: string,
+): Promise<string> {
+  if (isSupabaseConfigured()) {
+    return updateTelefonoSupabase(pin, slotStart, telefonos);
+  }
+  return updateTelefonoLocal(pin, slotStart, telefonos);
 }
 
 export function mergeAgenda(

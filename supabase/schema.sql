@@ -438,3 +438,43 @@ $$;
 
 revoke all on function cambiar_pin(text, text) from public;
 grant execute on function cambiar_pin(text, text) to anon, authenticated;
+
+-- El organizador corrige telefonos desde Coordinación. No hay GRANT UPDATE on bookings.
+create or replace function actualizar_telefono_organizador(
+  pin text,
+  p_slot_inicio timestamptz,
+  p_telefonos text
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  rec bookings;
+  guardado text;
+begin
+  if not es_organizador(pin) then
+    raise exception 'PIN inválido';
+  end if;
+
+  select * into rec
+  from bookings
+  where slot_start = p_slot_inicio
+  for update;
+
+  if not found then
+    raise exception 'No se encontró esa reserva';
+  end if;
+
+  update bookings
+  set telefonos = p_telefonos
+  where id = rec.id
+  returning telefonos into guardado;
+
+  return guardado;
+end;
+$$;
+
+revoke all on function actualizar_telefono_organizador(text, timestamptz, text) from public;
+grant execute on function actualizar_telefono_organizador(text, timestamptz, text) to anon, authenticated;

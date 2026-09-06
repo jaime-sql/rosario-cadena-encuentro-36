@@ -9,6 +9,7 @@ import { csvFileName, reservasToCsv } from "@/lib/csv";
 import { localOrgPin } from "@/lib/env";
 import { ORGANIZER_SESSION_KEY } from "@/lib/event";
 import { DEFAULT_PARAMS, type EventParams } from "@/lib/params";
+import { TelefonoCelda } from "@/components/telefono-celda";
 import { getEventParams, listOrganizerReservas, mergeAgenda, usesHostedDatabase } from "@/lib/storage";
 import { formatDiaLargo, formatHora } from "@/lib/slots";
 import { InvalidPinError, type ReservaCompleta } from "@/lib/types";
@@ -96,7 +97,7 @@ export function AgendaOrganizador() {
       <div className="flex flex-col gap-3 rounded-xl border-2 border-primary bg-[color:var(--paper)] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">Coordinación</p>
-          <p className="text-sm text-muted-foreground">{reservas.length} reservas · los teléfonos solo aparecen aquí</p>
+          <p className="text-sm text-muted-foreground">{reservas.length} reservas · los teléfonos solo aparecen aquí · clic para editar</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant={tab === "reservas" ? "default" : "outline"} onClick={() => setTab("reservas")}>Reservas</Button>
@@ -142,7 +143,24 @@ export function AgendaOrganizador() {
                     <td className="px-3 py-2 align-top whitespace-nowrap">{formatHora(row.slotEnd)}</td>
                     <td className="px-3 py-2 align-top">{row.reserved ? row.espososResponsables : "—"}</td>
                     <td className="px-3 py-2 align-top">{row.reserved ? row.numeroEncuentro : "—"}</td>
-                    <td className="px-3 py-2 align-top">{row.reserved ? row.telefonos : "—"}</td>
+                    <td className="px-3 py-2 align-top">
+                      {row.reserved ? (
+                        <TelefonoCelda
+                          slotStart={row.slotStart}
+                          telefonos={row.telefonos}
+                          pin={pin}
+                          onSaved={(slotStart, next) => {
+                            setReservas((current) =>
+                              current?.map((reserva) =>
+                                reserva.slotStart === slotStart ? { ...reserva, telefonos: next } : reserva,
+                              ) ?? null,
+                            );
+                          }}
+                        />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

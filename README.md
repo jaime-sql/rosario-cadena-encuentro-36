@@ -6,7 +6,7 @@ Aplicación web en español para inscribir turnos del Rosario en Cadena de la Pa
 - Esos datos (y el resto de reglas) se editan en `/organizador/` → **Parámetros**, sin SQL
 - Columnas: Hora inicio · Hora finalización · Esposos responsables · No. encuentro · Teléfonos
 - La lista pública **nunca muestra teléfonos**
-- Coordinación en `/organizador/` (PIN) con tabla completa, **exportación CSV** y parámetros
+- Coordinación en `/organizador/` (PIN) con tabla completa (teléfono editable en la grilla), **exportación CSV** y parámetros
 - El frontend es **estático**. Las reservas viven en **Supabase** (Postgres, plan Free)
 - Hay **dos pipelines**: GitHub Pages es **DEV**; Cloudflare Pages + Worker es **PROD**
 
@@ -59,7 +59,7 @@ Si las variables siguen con el texto `YOUR_PROJECT` / `YOUR_SUPABASE_ANON_KEY`, 
 
 1. Cree un proyecto en [https://supabase.com](https://supabase.com) (región cercana; cualquier región sirve).
 2. Abra **SQL Editor** y pegue todo el archivo [`supabase/schema.sql`](supabase/schema.sql). Ejecute **Run**.
-3. Si la base **ya existía** (solo `bookings` + `configuracion`), pegue en su lugar [`supabase/parametros.sql`](supabase/parametros.sql). No borra reservas.
+3. Si la base **ya existía** (solo `bookings` + `configuracion`), pegue en su lugar [`supabase/parametros.sql`](supabase/parametros.sql). No borra reservas. Si ya tenía parámetros y solo falta editar teléfonos desde Coordinación, pegue [`supabase/telefono-organizador.sql`](supabase/telefono-organizador.sql).
 4. El PIN se puede cambiar desde `/organizador/` → Parámetros. También puede hacerlo por SQL:
 
 ```sql
@@ -105,6 +105,7 @@ Los turnos **no** se pre-insertan. La UI los genera en el cliente a partir de `p
 - `configuracion`: RLS activo y **sin políticas** → el PIN no se lee desde el cliente.
 - `parametros`: SELECT público; escritura solo por RPC con PIN.
 - RPC `organizer_bookings(pin)`: `SECURITY DEFINER`; si el PIN coincide con `configuracion.org_pin`, devuelve todas las columnas (incluido `telefonos`) para la tabla de coordinación y el CSV.
+- RPC `actualizar_telefono_organizador(pin, p_slot_inicio, p_telefonos)`: mismo PIN; actualiza solo `bookings.telefonos`. El trigger `validar_reserva` exige 8–15 dígitos y el máximo por teléfono. **Hay que aplicarlo en el proyecto de Supabase en vivo** (`telefono-organizador.sql` o un `schema.sql` nuevo).
 - RPC `actualizar_parametros(pin, …)` / `cambiar_pin(pin_actual, pin_nuevo)`: mismo PIN.
 - RPC `reservas_por_telefono`, `reagendar_reserva`, `cancelar_reserva`: el visitante demuestra que es dueño con el teléfono. Reagendar mueve la fila (el turno anterior queda libre; el único en `slot_start` se mantiene). Cancelar solo si `permitir_cancelar` y dentro del **mismo corte**.
 
@@ -155,7 +156,7 @@ La primera publicación a veces pide aprobar el entorno `github-pages` (Settings
 
 - Ruta: `/organizador/`
 - Pedirá el **ORG_PIN** (el de la tabla `configuracion`, no un usuario).
-- Ahí sí aparecen teléfonos y el botón **Exportar CSV** (columnas de la hoja + día).
+- Ahí sí aparecen teléfonos y el botón **Exportar CSV** (columnas de la hoja + día). En **Reservas**, el organizador puede hacer clic en un teléfono, editarlo y guardar (Enter, al salir del campo, o el visto). Las demás columnas siguen solo de lectura.
 - Pestaña **Parámetros**: inicio/fin, intervalo, máximo por teléfono, corte de reagendado/cancelación, permitir cancelar, y **cambiar PIN**.
 
 En la página pública, **Gestionar mi reserva** pide el teléfono (solo dígitos) para reagendar o cancelar. Esa pantalla no lista teléfonos de otras personas.
@@ -168,7 +169,7 @@ En la página pública, **Gestionar mi reserva** pide el teléfono (solo dígito
 npm test
 ```
 
-Cubre: generación de los 69 turnos, teléfono solo dígitos, máximo por teléfono, reagendar permitido/bloqueado por el corte, flag de cancelar, y que la lista pública no incluye `telefonos`.
+Cubre: generación de los 69 turnos, teléfono solo dígitos, máximo por teléfono, reagendar permitido/bloqueado por el corte, flag de cancelar, edición de teléfono por el organizador (válido / inválido conserva el anterior), y que la lista pública no incluye `telefonos`.
 
 ---
 
