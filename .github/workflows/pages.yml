@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -48,8 +46,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
       - name: Disable Jekyll
         run: touch out/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: site
           path: out
 
   deploy:
@@ -58,6 +57,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Download site
+        if: needs.build.outputs.supabase_ready == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
       - name: Publish to gh-pages
         if: needs.build.outputs.supabase_ready == 'true'
         uses: peaceiris/actions-gh-pages@v4
