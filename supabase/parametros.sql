@@ -82,6 +82,7 @@ end;
 $$;
 
 revoke all on function leer_parametros() from public, anon, authenticated;
+grant execute on function leer_parametros() to anon, authenticated;
 
 create or replace function validar_reserva()
 returns trigger
