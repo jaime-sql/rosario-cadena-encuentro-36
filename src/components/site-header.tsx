@@ -8,12 +8,12 @@ export function SiteHeader({ compact = false }: { compact?: boolean }) {
     <header className="border-b-2 border-primary bg-[color:var(--paper)]">
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:gap-4 sm:px-6 sm:py-5">
         <div className="flex items-end justify-center gap-3 sm:hidden">
-          <EncuentrosLogo className="h-16 max-w-[42vw]" />
-          <LiturgiaLogo className="h-16 max-w-[42vw]" />
+          <EncuentrosLogo className="h-20 max-w-[42vw]" />
+          <LiturgiaLogo className="h-20 max-w-[42vw]" />
         </div>
         <div className="hidden items-center justify-between gap-3 sm:flex">
           <div className="flex min-w-0 items-center gap-3">
-            <EncuentrosLogo className="h-16 md:h-20" />
+            <EncuentrosLogo className="h-20 md:h-24" />
             <div className="min-w-0">
               <p className="text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
                 Encuentros Conyugales
@@ -28,7 +28,7 @@ export function SiteHeader({ compact = false }: { compact?: boolean }) {
               </p>
               <p className="text-xs text-muted-foreground">{EVENT_GROUP}</p>
             </div>
-            <LiturgiaLogo className="h-16 md:h-20" />
+            <LiturgiaLogo className="h-20 md:h-24" />
           </div>
         </div>
         <div className="text-center">

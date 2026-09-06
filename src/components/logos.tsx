@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { cn } from "cn";
+import { withBasePath } from "@/lib/base-path";
 
 const ENCUENTROS_ALT =
   "Encuentros Conyugales — San Juan Bautista, Ordinariato Militar de El Salvador";
@@ -10,13 +10,13 @@ const logoClassName = "h-full w-auto max-w-full object-contain object-center";
 export function EncuentrosLogo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex shrink-0 items-center justify-center", className)}>
-      <Image
-        src="/logos/encuentros-conyugales.jpg"
+      <img
+        src={withBasePath("/logos/encuentros-conyugales.jpg")}
         alt={ENCUENTROS_ALT}
         width={800}
         height={1200}
         className={logoClassName}
-        priority
+        decoding="async"
       />
     </span>
   );
@@ -25,13 +25,13 @@ export function EncuentrosLogo({ className }: { className?: string }) {
 export function LiturgiaLogo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex shrink-0 items-center justify-center", className)}>
-      <Image
-        src="/logos/unidad-liturgia-oracion.jpg"
+      <img
+        src={withBasePath("/logos/unidad-liturgia-oracion.jpg")}
         alt={LITURGIA_ALT}
         width={800}
         height={1200}
         className={logoClassName}
-        priority
+        decoding="async"
       />
     </span>
   );
