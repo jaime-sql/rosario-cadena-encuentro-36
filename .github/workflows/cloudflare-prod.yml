@@ -1,19 +1,20 @@
-name: GitHub Pages
+name: Cloudflare Prod
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  push:
+    tags:
+      - "prod-*"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: cloudflare-prod
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +27,9 @@ jobs:
       - run: npm ci --no-fund --no-audit
       - run: npm test
 
-      - name: Check Supabase secrets
+      - name: Check deploy secrets
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -40,20 +42,21 @@ jobs:
             echo "::error::Repository Actions secrets PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY are missing (NEXT_PUBLIC_* aliases also accepted)."
             exit 1
           fi
-          echo "Supabase secrets are present (values not printed)."
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error::Repository Actions secret CLOUDFLARE_API_TOKEN is missing. Create a token with Cloudflare Pages + Workers edit on account 8a8c9483df8e8a2a9adec437a0994fe4."
+            exit 1
+          fi
+          echo "Deploy secrets are present (values not printed)."
 
       - name: Build static site
         run: npm run build
         env:
-          GITHUB_PAGES: "true"
-          BASE_PATH: /rosario-cadena-encuentro-36
+          CLOUDFLARE_PROD: "true"
+          BASE_PATH: /rosariocadena
           PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || secrets.PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Disable Jekyll
-        run: touch out/.nojekyll
 
       - name: Confirm Supabase is inlined
         run: |
@@ -64,23 +67,16 @@ jobs:
           fi
           echo "Supabase project URL is present in the static build."
 
-      - name: Publish to gh-pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          work="$(mktemp -d)"
-          git clone --depth 1 --branch gh-pages \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$work"
-          find "$work" -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
-          cp -a out/. "$work/"
-          cd "$work"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No site changes to publish."
-            exit 0
-          fi
-          git commit -m "Publish static GitHub Pages site"
-          git push origin gh-pages
+      - name: Deploy Pages project rosario-cadena
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '8a8c9483df8e8a2a9adec437a0994fe4' }}
+          command: pages deploy out --project-name=rosario-cadena --branch=main
+
+      - name: Deploy path Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID || '8a8c9483df8e8a2a9adec437a0994fe4' }}
+          command: deploy --config workers/rosariocadena-path/wrangler.jsonc

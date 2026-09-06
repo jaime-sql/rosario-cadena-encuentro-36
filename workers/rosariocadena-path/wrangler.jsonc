@@ -1,0 +1,26 @@
+{
+  "name": "rosariocadena-path",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-06",
+  "account_id": "8a8c9483df8e8a2a9adec437a0994fe4",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "PAGES_ORIGIN": "https://rosario-cadena.pages.dev",
+    "BASE_PATH": "/rosariocadena",
+    "PUBLIC_ORIGIN": "https://mecsjb.org"
+  },
+  "routes": [
+    {
+      "pattern": "mecsjb.org/rosariocadena",
+      "zone_id": "79da976e03f279d31728a3e86c692269"
+    },
+    {
+      "pattern": "mecsjb.org/rosariocadena/*",
+      "zone_id": "79da976e03f279d31728a3e86c692269"
+    }
+  ]
+}
