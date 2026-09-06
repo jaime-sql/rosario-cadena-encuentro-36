@@ -1,12 +1,25 @@
 import type { NextConfig } from "next";
 
+const PLACEHOLDER = /YOUR_|CAMBIE_|example\.supabase|xxxxxxxx/i;
+
+function cleanEnv(value: string | undefined): string {
+  const trimmed = value?.trim() ?? "";
+  return !trimmed || PLACEHOLDER.test(trimmed) ? "" : trimmed;
+}
+
 const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.PUBLIC_SUPABASE_URL || "";
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
+  cleanEnv(process.env.PUBLIC_SUPABASE_URL);
 const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  process.env.PUBLIC_SUPABASE_ANON_KEY ||
-  "";
-const orgPin = process.env.NEXT_PUBLIC_ORG_PIN || process.env.ORG_PIN || "";
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  cleanEnv(process.env.PUBLIC_SUPABASE_ANON_KEY);
+const orgPin = cleanEnv(process.env.NEXT_PUBLIC_ORG_PIN) || cleanEnv(process.env.ORG_PIN);
+
+if (process.env.GITHUB_PAGES === "true" && (!supabaseUrl || !supabaseAnonKey)) {
+  throw new Error(
+    "GitHub Pages build is missing PUBLIC_SUPABASE_URL / PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_* aliases).",
+  );
+}
 
 const nextConfig: NextConfig = {
   output: "export",

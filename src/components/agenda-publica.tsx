@@ -16,7 +16,10 @@ export function AgendaPublica() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<PublicTurno | null>(null);
-  const hosted = usesHostedDatabase();
+  // Static NEXT_PUBLIC_* reads so a hosted Pages build can drop the local-only banner.
+  const hosted =
+    usesHostedDatabase() ||
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   const load = useCallback(async () => {
     setLoading(true);
