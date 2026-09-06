@@ -10,6 +10,7 @@ import {
   MaxReservasError,
   OwnershipError,
   assertNoTelefonos,
+  shouldRefreshPublicAgenda,
 } from "../src/lib/types";
 
 const sample = {
@@ -29,6 +30,15 @@ const secondSlot = {
 };
 
 describe("doble reserva", () => {
+  it("pide refrescar la agenda pública solo si el turno ya no está disponible", () => {
+    const occupied = new DoubleBookingError();
+    expect(occupied.message).toBe("Este turno ya fue reservado. Elija otro horario.");
+    expect(shouldRefreshPublicAgenda(occupied)).toBe(true);
+    expect(shouldRefreshPublicAgenda(new MaxReservasError())).toBe(false);
+    expect(shouldRefreshPublicAgenda(new OwnershipError())).toBe(false);
+    expect(shouldRefreshPublicAgenda(new Error("No se pudo guardar la reserva. Intente de nuevo."))).toBe(false);
+  });
+
   it("rechaza un segundo insert en el mismo slot_start", () => {
     const store = new MemoryReservasStore("sjb36");
     store.reserve(sample);

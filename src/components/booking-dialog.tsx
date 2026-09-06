@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { DEFAULT_PARAMS, type EventParams } from "@/lib/params";
 import { createReserva } from "@/lib/storage";
 import { formatHora } from "@/lib/slots";
-import { DoubleBookingError, MaxReservasError, type PublicTurno } from "@/lib/types";
+import { DoubleBookingError, MaxReservasError, shouldRefreshPublicAgenda, type PublicTurno } from "@/lib/types";
 import { fieldErrors } from "@/lib/validation";
 
 type Props = {
@@ -61,6 +61,9 @@ export function BookingDialog({ slot, open, onOpenChange, onBooked, params = DEF
         setErrors(fieldErrors(error));
       } else if (error instanceof DoubleBookingError || error instanceof MaxReservasError) {
         setFormError(error.message);
+        if (shouldRefreshPublicAgenda(error)) {
+          onBooked();
+        }
       } else {
         setFormError(error instanceof Error ? error.message : "No se pudo guardar la reserva. Intente de nuevo.");
       }
