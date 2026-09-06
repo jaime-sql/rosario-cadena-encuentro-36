@@ -23,7 +23,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/configure-pages@v5
       - run: npm ci --no-fund --no-audit
       - run: npm test
       - name: Build static site
