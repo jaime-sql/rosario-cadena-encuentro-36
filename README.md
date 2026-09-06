@@ -1,11 +1,12 @@
 # Rosario en Cadena por Encuentro 36 SJB
 
-Aplicación web en español para inscribir **turnos de 30 minutos** del Rosario en Cadena de la Parroquia San Juan Bautista (MEC-SJB, El Salvador).
+Aplicación web en español para inscribir turnos del Rosario en Cadena de la Parroquia San Juan Bautista (MEC-SJB, El Salvador).
 
-- **Sábado 12 de septiembre 2026, 06:00** → **domingo 13 de septiembre 2026, 16:30** (`America/El_Salvador`)
+- Valores por defecto: **sábado 12 de septiembre 2026, 06:00** → **domingo 13 de septiembre 2026, 16:30** (`America/El_Salvador`), turnos de **30 minutos**
+- Esos datos (y el resto de reglas) se editan en `/organizador/` → **Parámetros**, sin SQL
 - Columnas: Hora inicio · Hora finalización · Esposos responsables · No. encuentro · Teléfonos
 - La lista pública **nunca muestra teléfonos**
-- Coordinación en `/organizador/` (PIN) con tabla completa y **exportación CSV**
+- Coordinación en `/organizador/` (PIN) con tabla completa, **exportación CSV** y parámetros
 - El frontend es **estático** (GitHub Pages). Las reservas viven en **Supabase** (Postgres, plan Free)
 
 **Repositorio:** [github.com/jaime-sql/rosario-cadena-encuentro-36](https://github.com/jaime-sql/rosario-cadena-encuentro-36)
@@ -53,7 +54,8 @@ Si las variables siguen con el texto `YOUR_PROJECT` / `YOUR_SUPABASE_ANON_KEY`, 
 
 1. Cree un proyecto en [https://supabase.com](https://supabase.com) (región cercana; cualquier región sirve).
 2. Abra **SQL Editor** y pegue todo el archivo [`supabase/schema.sql`](supabase/schema.sql). Ejecute **Run**.
-3. En esa misma SQL, cambie el PIN (reemplace `sjb36` por el suyo):
+3. Si la base **ya existía** (solo `bookings` + `configuracion`), pegue en su lugar [`supabase/parametros.sql`](supabase/parametros.sql). No borra reservas.
+4. El PIN se puede cambiar desde `/organizador/` → Parámetros. También puede hacerlo por SQL:
 
 ```sql
 update configuracion
@@ -61,30 +63,45 @@ set valor = 'SU_PIN_SECRETO'
 where clave = 'org_pin';
 ```
 
-4. En **Project Settings → API** copie:
+5. En **Project Settings → API** copie:
    - Project URL → `PUBLIC_SUPABASE_URL`
    - `anon` `public` key → `PUBLIC_SUPABASE_ANON_KEY`
-5. Péguelas en `.env.local` (local) y en GitHub → **Settings → Secrets and variables → Actions**.
+6. Péguelas en `.env.local` (local) y en GitHub → **Settings → Secrets and variables → Actions**.
+
+### Tabla `parametros` (una sola fila)
+
+| Columna | Valor por defecto | Qué controla |
+| --- | --- | --- |
+| `evento_inicio` / `evento_fin` | 12 sep 2026 06:00 → 13 sep 2026 16:30 (−06) | Ventana del Rosario en `America/El_Salvador` |
+| `intervalo_minutos` | 30 | Duración de cada turno. La ventana debe ser múltiplo de este valor |
+| `max_reservas_por_telefono` | 1 | Reservas activas por teléfono (dígitos normalizados) |
+| `corte_reagendar_minutos` | 60 | Minutos de anticipación para **reagendar o cancelar** (`now() ≤ inicio − corte`) |
+| `permitir_cancelar` | true | Si es `false`, nadie puede cancelar desde la web |
+
+El público **puede leer** esta tabla (no hay secretos). Solo el organizador la escribe, con el PIN, mediante `actualizar_parametros`. Cambiar inicio, fin o intervalo **no borra reservas**; la UI avisa si ya hay inscripciones.
 
 ### Tabla `bookings`
 
 | Columna | Tipo | Notas |
 | --- | --- | --- |
 | `slot_start` | `timestamptz` | **Único** (índice `bookings_slot_start_uidx`). Impide dos reservas en el mismo turno |
-| `slot_end` | `timestamptz` | Debe ser `slot_start + 30 minutes` |
+| `slot_end` | `timestamptz` | Debe ser `slot_start + intervalo_minutos` (según `parametros`) |
 | `esposos_responsables` | `text` | Obligatorio |
 | `numero_encuentro` | `integer` | Obligatorio, > 0 |
-| `telefonos` | `text` | Obligatorio; no se expone en la vista pública |
+| `telefonos` | `text` | Solo dígitos (8–15); se normaliza al guardar. No se expone en la vista pública |
 | `created_at` | `timestamptz` | Se llena solo |
 
-Los 69 turnos **no** se pre-insertan. La UI los genera en el cliente; la base solo guarda inscripciones.
+Los turnos **no** se pre-insertan. La UI los genera en el cliente a partir de `parametros`; la base solo guarda inscripciones.
 
 ### RLS (quién ve qué)
 
-- `bookings`: el rol `anon` **puede insertar**, **no puede hacer SELECT**. Así `telefonos` no sale por REST.
+- `bookings`: el rol `anon` **puede insertar**, **no puede hacer SELECT** ni UPDATE/DELETE. Así `telefonos` no sale por REST.
 - Vista `bookings_public`: solo `slot_start`, `slot_end`, `esposos_responsables`, `numero_encuentro`.
 - `configuracion`: RLS activo y **sin políticas** → el PIN no se lee desde el cliente.
+- `parametros`: SELECT público; escritura solo por RPC con PIN.
 - RPC `organizer_bookings(pin)`: `SECURITY DEFINER`; si el PIN coincide con `configuracion.org_pin`, devuelve todas las columnas (incluido `telefonos`) para la tabla de coordinación y el CSV.
+- RPC `actualizar_parametros(pin, …)` / `cambiar_pin(pin_actual, pin_nuevo)`: mismo PIN.
+- RPC `reservas_por_telefono`, `reagendar_reserva`, `cancelar_reserva`: el visitante demuestra que es dueño con el teléfono. Reagendar mueve la fila (el turno anterior queda libre; el único en `slot_start` se mantiene). Cancelar solo si `permitir_cancelar` y dentro del **mismo corte**.
 
 Un segundo `INSERT` con el mismo `slot_start` falla con error Postgres `23505`. La UI lo muestra como *«Este turno ya fue reservado»*.
 
@@ -109,6 +126,9 @@ La primera publicación a veces pide aprobar el entorno `github-pages` (Settings
 - Ruta: `/organizador/`
 - Pedirá el **ORG_PIN** (el de la tabla `configuracion`, no un usuario).
 - Ahí sí aparecen teléfonos y el botón **Exportar CSV** (columnas de la hoja + día).
+- Pestaña **Parámetros**: inicio/fin, intervalo, máximo por teléfono, corte de reagendado/cancelación, permitir cancelar, y **cambiar PIN**.
+
+En la página pública, **Gestionar mi reserva** pide el teléfono (solo dígitos) para reagendar o cancelar. Esa pantalla no lista teléfonos de otras personas.
 
 ---
 
@@ -118,7 +138,7 @@ La primera publicación a veces pide aprobar el entorno `github-pages` (Settings
 npm test
 ```
 
-Cubre: generación de los 69 turnos, rechazo de doble reserva, validación de campos y que la lista pública no incluye `telefonos`.
+Cubre: generación de los 69 turnos, teléfono solo dígitos, máximo por teléfono, reagendar permitido/bloqueado por el corte, flag de cancelar, y que la lista pública no incluye `telefonos`.
 
 ---
 

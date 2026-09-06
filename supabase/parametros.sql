@@ -1,35 +1,15 @@
 -- =============================================================================
--- Rosario en Cadena por Encuentro 36 SJB
+-- Parámetros del organizador (incremental)
 -- Pegue este archivo en: Supabase → SQL Editor → Run
--- (instalación nueva). Si la base ya existe, use supabase/parametros.sql
+--
+-- Destinado a una base que YA tiene supabase/schema.sql (bookings + configuracion).
+-- NO borra reservas. Es idempotente (se puede volver a ejecutar).
+--
+-- Cancelar usa el MISMO corte que reagendar: solo si
+--   now() <= slot_start - corte_reagendar_minutos
+-- y además parametros.permitir_cancelar = true.
 -- =============================================================================
 
--- PIN de coordinación (cámbielo). La UI pública NUNCA lee esta tabla.
-create table if not exists configuracion (
-  clave text primary key,
-  valor text not null
-);
-
-insert into configuracion (clave, valor)
-values ('org_pin', 'sjb36')  -- ORG_PIN: cámbielo antes de publicar
-on conflict (clave) do nothing;
-
--- Reservas: una fila por turno. slot_start es único → no hay doble reserva.
-create table if not exists bookings (
-  id uuid primary key default gen_random_uuid(),
-  slot_start timestamptz not null,
-  slot_end timestamptz not null,
-  esposos_responsables text not null,
-  numero_encuentro integer not null
-    check (numero_encuentro > 0 and numero_encuentro <= 9999),
-  telefonos text not null,
-  created_at timestamptz not null default now()
-);
-
-create unique index if not exists bookings_slot_start_uidx
-  on bookings (slot_start);
-
--- Parámetros editables desde /organizador/ (misma PIN). Una sola fila.
 create table if not exists parametros (
   id smallint primary key default 1 check (id = 1),
   evento_inicio timestamptz not null,
@@ -64,6 +44,25 @@ values (
   true
 )
 on conflict (id) do nothing;
+
+alter table parametros enable row level security;
+
+drop policy if exists parametros_select_publico on parametros;
+create policy parametros_select_publico
+  on parametros
+  for select
+  to anon, authenticated
+  using (true);
+
+grant select on parametros to anon, authenticated;
+
+-- La duración ya no está fija en 30 minutos: la valida el trigger contra parametros.
+alter table bookings drop constraint if exists bookings_duracion_30min;
+
+-- Normaliza teléfonos ya guardados (no toca el resto de la fila).
+update bookings
+set telefonos = regexp_replace(telefonos, '\D', '', 'g')
+where telefonos ~ '\D';
 
 create or replace function leer_parametros()
 returns parametros
@@ -133,90 +132,10 @@ revoke all on function validar_reserva() from public, anon, authenticated;
 
 drop trigger if exists bookings_validar_turno on bookings;
 drop trigger if exists bookings_validar_reserva on bookings;
+drop function if exists validar_turno_rosario();
 create trigger bookings_validar_reserva
 before insert or update on bookings
 for each row execute function validar_reserva();
-
-alter table configuracion enable row level security;
-alter table bookings enable row level security;
-alter table parametros enable row level security;
-
--- El público puede INSCRIBIRSE (insert). No puede SELECT directo de telefonos.
-drop policy if exists bookings_insert_publico on bookings;
-create policy bookings_insert_publico
-  on bookings
-  for insert
-  to anon, authenticated
-  with check (true);
-
-drop policy if exists parametros_select_publico on parametros;
-create policy parametros_select_publico
-  on parametros
-  for select
-  to anon, authenticated
-  using (true);
-
--- Vista pública: mismas columnas de la hoja, SIN teléfonos.
--- security_invoker = false: la vista corre como dueño y no choca con RLS.
-create or replace view bookings_public
-with (security_invoker = false) as
-select slot_start, slot_end, esposos_responsables, numero_encuentro
-from bookings;
-
-grant select on bookings_public to anon, authenticated;
-grant insert on bookings to anon, authenticated;
-grant select on parametros to anon, authenticated;
--- no hay GRANT SELECT on bookings → telefonos no salen por REST público
--- no hay GRANT UPDATE/DELETE on bookings → reagendar/cancelar solo por RPC
-
-create or replace function es_organizador(pin text)
-returns boolean
-language sql
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1 from configuracion
-    where clave = 'org_pin' and valor = pin
-  );
-$$;
-
-revoke all on function es_organizador(text) from public;
-grant execute on function es_organizador(text) to anon, authenticated;
-
--- Solo con ORG_PIN correcto se listan telefonos (para la tabla y el CSV).
-create or replace function organizer_bookings(pin text)
-returns table (
-  slot_start timestamptz,
-  slot_end timestamptz,
-  esposos_responsables text,
-  numero_encuentro integer,
-  telefonos text,
-  created_at timestamptz
-)
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if not es_organizador(pin) then
-    raise exception 'PIN inválido';
-  end if;
-  return query
-    select
-      b.slot_start,
-      b.slot_end,
-      b.esposos_responsables,
-      b.numero_encuentro,
-      b.telefonos,
-      b.created_at
-    from bookings b
-    order by b.slot_start;
-end;
-$$;
-
-revoke all on function organizer_bookings(text) from public;
-grant execute on function organizer_bookings(text) to anon, authenticated;
 
 create or replace function reservas_por_telefono(p_telefonos text)
 returns table (
@@ -377,7 +296,8 @@ begin
     raise exception 'La ventana del Rosario debe ser múltiplo del intervalo de los turnos';
   end if;
 
-  -- No se borran reservas al cambiar el horario o el intervalo.
+  -- No se borran reservas. Si hay inscripciones fuera de la nueva ventana,
+  -- siguen en la tabla; la UI avisa al organizador.
   update parametros
   set
     evento_inicio = p_evento_inicio,

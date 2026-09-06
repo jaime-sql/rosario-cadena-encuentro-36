@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DEFAULT_PARAMS, type EventParams } from "@/lib/params";
 import { createReserva } from "@/lib/storage";
 import { formatHora } from "@/lib/slots";
-import { DoubleBookingError, type PublicTurno } from "@/lib/types";
+import { DoubleBookingError, MaxReservasError, type PublicTurno } from "@/lib/types";
 import { fieldErrors } from "@/lib/validation";
 
 type Props = {
@@ -16,9 +17,10 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBooked: () => void;
+  params?: EventParams;
 };
 
-export function BookingDialog({ slot, open, onOpenChange, onBooked }: Props) {
+export function BookingDialog({ slot, open, onOpenChange, onBooked, params = DEFAULT_PARAMS }: Props) {
   const [espososResponsables, setEspososResponsables] = useState("");
   const [numeroEncuentro, setNumeroEncuentro] = useState("");
   const [telefonos, setTelefonos] = useState("");
@@ -51,13 +53,13 @@ export function BookingDialog({ slot, open, onOpenChange, onBooked }: Props) {
         espososResponsables,
         numeroEncuentro,
         telefonos,
-      });
+      }, params);
       setSuccess("Gracias. Su turno del Rosario quedó reservado.");
       onBooked();
     } catch (error) {
       if (error instanceof ZodError) {
         setErrors(fieldErrors(error));
-      } else if (error instanceof DoubleBookingError) {
+      } else if (error instanceof DoubleBookingError || error instanceof MaxReservasError) {
         setFormError(error.message);
       } else {
         setFormError(error instanceof Error ? error.message : "No se pudo guardar la reserva. Intente de nuevo.");
@@ -83,7 +85,7 @@ export function BookingDialog({ slot, open, onOpenChange, onBooked }: Props) {
             {formError && <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">{formError}</p>}
             <Field id="esposos" label="Esposos responsables" value={espososResponsables} onChange={setEspososResponsables} error={errors.espososResponsables} placeholder="Cesar y Mercy Avalos" autoComplete="name" />
             <Field id="encuentro" label="No. encuentro" value={numeroEncuentro} onChange={setNumeroEncuentro} error={errors.numeroEncuentro} placeholder="164" inputMode="numeric" />
-            <Field id="telefonos" label="Teléfonos" value={telefonos} onChange={setTelefonos} error={errors.telefonos} placeholder="7826-6416" autoComplete="tel" hint="El teléfono no se muestra en la lista pública." />
+            <Field id="telefonos" label="Teléfono (solo dígitos)" value={telefonos} onChange={setTelefonos} error={errors.telefonos} placeholder="78266416" inputMode="numeric" autoComplete="tel" hint="Solo dígitos, sin espacios ni guiones. No se muestra en la lista pública." />
           </form>
         )}
         <DialogFooter>

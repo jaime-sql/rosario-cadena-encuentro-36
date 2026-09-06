@@ -21,7 +21,7 @@ export type BookingInput = {
 export type PublicTurno = {
   slotStart: string;
   slotEnd: string;
-  dayKey: "sabado" | "domingo";
+  dayKey: string;
   reserved: boolean;
   espososResponsables: string | null;
   numeroEncuentro: number | null;
@@ -42,6 +42,51 @@ export class InvalidPinError extends Error {
   constructor(message = "El PIN no es correcto.") {
     super(message);
     this.name = "InvalidPinError";
+  }
+}
+
+export class MaxReservasError extends Error {
+  readonly code = "max_reservas" as const;
+
+  constructor(message = "Este teléfono ya tiene el máximo de reservas permitidas.") {
+    super(message);
+    this.name = "MaxReservasError";
+  }
+}
+
+export class OwnershipError extends Error {
+  readonly code = "sin_permiso" as const;
+
+  constructor(message = "El teléfono no coincide con esta reserva.") {
+    super(message);
+    this.name = "OwnershipError";
+  }
+}
+
+export class CutoffError extends Error {
+  readonly code = "corte" as const;
+
+  constructor(message = "Ya no se puede cambiar este turno: pasó el tiempo de anticipación.") {
+    super(message);
+    this.name = "CutoffError";
+  }
+}
+
+export class CancelDisabledError extends Error {
+  readonly code = "cancelar_no" as const;
+
+  constructor(message = "Las cancelaciones no están permitidas.") {
+    super(message);
+    this.name = "CancelDisabledError";
+  }
+}
+
+export class ReservaNoEncontradaError extends Error {
+  readonly code = "no_encontrada" as const;
+
+  constructor(message = "No se encontró esa reserva.") {
+    super(message);
+    this.name = "ReservaNoEncontradaError";
   }
 }
 

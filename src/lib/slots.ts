@@ -1,34 +1,22 @@
-import {
-  EVENT_END_ISO,
-  EVENT_START_ISO,
-  SLOT_MINUTES,
-  TIME_ZONE,
-} from "./event";
+import { TIME_ZONE } from "./event";
+import { DEFAULT_PARAMS, type EventParams, expectedSlotEnd } from "./params";
+import { canonicalIso } from "./slots-iso";
 
-export type DayKey = "sabado" | "domingo";
+export { canonicalIso } from "./slots-iso";
 
 export type Slot = {
   /** Inicio del turno, ISO-8601 UTC canónico. */
   slotStart: string;
   /** Fin del turno, ISO-8601 UTC canónico. */
   slotEnd: string;
-  dayKey: DayKey;
+  /** Fecha local YYYY-MM-DD en America/El_Salvador. */
+  dayKey: string;
 };
 
-const SLOT_MS = SLOT_MINUTES * 60 * 1000;
-
-export function canonicalIso(value: string | Date): string {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error(`Fecha inválida: ${String(value)}`);
-  }
-  return date.toISOString();
-}
-
 export function generateSlots(
-  startIso: string = EVENT_START_ISO,
-  endIso: string = EVENT_END_ISO,
-  slotMinutes: number = SLOT_MINUTES,
+  startIso: string = DEFAULT_PARAMS.eventoInicio,
+  endIso: string = DEFAULT_PARAMS.eventoFin,
+  slotMinutes: number = DEFAULT_PARAMS.intervaloMinutos,
 ): Slot[] {
   if (slotMinutes <= 0 || slotMinutes % 1 !== 0) {
     throw new Error("La duración del turno debe ser un entero positivo.");
@@ -55,23 +43,28 @@ export function generateSlots(
     slots.push({
       slotStart,
       slotEnd,
-      dayKey: dayKeyFor(slotStart),
+      dayKey: localDateKey(slotStart),
     });
   }
   return slots;
 }
 
-export function isValidSlotStart(iso: string): boolean {
-  const wanted = canonicalIso(iso);
-  return generateSlots().some((slot) => slot.slotStart === wanted);
+export function generateSlotsFromParams(params: EventParams = DEFAULT_PARAMS): Slot[] {
+  return generateSlots(params.eventoInicio, params.eventoFin, params.intervaloMinutos);
 }
 
-export function dayKeyFor(iso: string): DayKey {
-  const day = new Intl.DateTimeFormat("en-US", {
+export function isValidSlotStart(iso: string, params: EventParams = DEFAULT_PARAMS): boolean {
+  const wanted = canonicalIso(iso);
+  return generateSlotsFromParams(params).some((slot) => slot.slotStart === wanted);
+}
+
+export function localDateKey(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: TIME_ZONE,
-    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(new Date(iso));
-  return day.toLowerCase().startsWith("sat") ? "sabado" : "domingo";
 }
 
 export function formatHora(iso: string): string {
@@ -111,20 +104,40 @@ export function formatDiaLargo(iso: string): string {
   return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
-export function dayHeading(dayKey: DayKey): string {
-  return dayKey === "sabado"
-    ? "Día: sábado 12 de septiembre 2026"
-    : "Día: domingo 13 de septiembre 2026";
+export function dayHeading(iso: string): string {
+  return `Día: ${formatDiaLargo(iso)}`;
 }
 
 export function slotsAreContiguous(slots: Slot[]): boolean {
+  if (slots.length === 0) {
+    return true;
+  }
+  const duration = Date.parse(slots[0].slotEnd) - Date.parse(slots[0].slotStart);
   for (let i = 1; i < slots.length; i += 1) {
     if (slots[i - 1].slotEnd !== slots[i].slotStart) {
       return false;
     }
-    if (Date.parse(slots[i].slotEnd) - Date.parse(slots[i].slotStart) !== SLOT_MS) {
+    if (Date.parse(slots[i].slotEnd) - Date.parse(slots[i].slotStart) !== duration) {
       return false;
     }
   }
   return true;
+}
+
+export function bookingFitsParams(
+  reserva: { slotStart: string; slotEnd: string },
+  params: EventParams,
+): boolean {
+  try {
+    const start = canonicalIso(reserva.slotStart);
+    return isValidSlotStart(start, params) && canonicalIso(reserva.slotEnd) === expectedSlotEnd(start, params.intervaloMinutos);
+  } catch {
+    return false;
+  }
+}
+
+export function formatRangoEvento(params: EventParams): string {
+  const inicio = `${formatDiaLargo(params.eventoInicio)} a las ${formatHora(params.eventoInicio)}`;
+  const fin = `${formatDiaLargo(params.eventoFin)} a las ${formatHora(params.eventoFin)}`;
+  return `${inicio} hasta ${fin} (hora de El Salvador). Turnos de ${params.intervaloMinutos} minutos.`;
 }

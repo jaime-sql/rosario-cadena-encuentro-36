@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BookingDialog } from "@/components/booking-dialog";
+import { GestionarReservaDialog } from "@/components/gestionar-reserva";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { listPublicReservas, mergeAgenda, usesHostedDatabase } from "@/lib/storage";
+import { DEFAULT_PARAMS, type EventParams } from "@/lib/params";
+import { getEventParams, listPublicReservas, mergeAgenda, usesHostedDatabase } from "@/lib/storage";
 import { dayHeading, formatHora } from "@/lib/slots";
 import { assertNoTelefonos, type PublicTurno } from "@/lib/types";
 
@@ -12,11 +14,12 @@ type Filter = "todos" | "disponibles" | "reservados";
 
 export function AgendaPublica() {
   const [turnos, setTurnos] = useState<PublicTurno[]>([]);
+  const [params, setParams] = useState<EventParams>(DEFAULT_PARAMS);
   const [filter, setFilter] = useState<Filter>("todos");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<PublicTurno | null>(null);
-  // Static NEXT_PUBLIC_* reads so a hosted Pages build can drop the local-only banner.
+  const [manageOpen, setManageOpen] = useState(false);
   const hosted =
     usesHostedDatabase() ||
     Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -25,12 +28,13 @@ export function AgendaPublica() {
     setLoading(true);
     setError(null);
     try {
-      const reservas = await listPublicReservas();
+      const [reservas, loaded] = await Promise.all([listPublicReservas(), getEventParams()]);
       assertNoTelefonos(reservas);
-      setTurnos(mergeAgenda(reservas));
+      setParams(loaded);
+      setTurnos(mergeAgenda(reservas, loaded));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No se pudo conectar con la base de reservas. Intente de nuevo.");
-      setTurnos(mergeAgenda([]));
+      setTurnos(mergeAgenda([], DEFAULT_PARAMS));
     } finally {
       setLoading(false);
     }
@@ -45,8 +49,15 @@ export function AgendaPublica() {
     return turnos;
   }, [filter, turnos]);
 
-  const sabado = visible.filter((turno) => turno.dayKey === "sabado");
-  const domingo = visible.filter((turno) => turno.dayKey === "domingo");
+  const grupos = useMemo(() => {
+    const map = new Map<string, PublicTurno[]>();
+    for (const turno of visible) {
+      const list = map.get(turno.dayKey) ?? [];
+      list.push(turno);
+      map.set(turno.dayKey, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [visible]);
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6">
@@ -65,6 +76,7 @@ export function AgendaPublica() {
             <FilterButton current={filter} value="todos" onClick={setFilter}>Todos</FilterButton>
             <FilterButton current={filter} value="disponibles" onClick={setFilter}>Disponibles</FilterButton>
             <FilterButton current={filter} value="reservados" onClick={setFilter}>Reservados</FilterButton>
+            <Button type="button" size="sm" variant="outline" onClick={() => setManageOpen(true)}>Gestionar mi reserva</Button>
           </div>
         </div>
       </section>
@@ -79,16 +91,23 @@ export function AgendaPublica() {
       ) : visible.length === 0 ? (
         <EmptyState filter={filter} />
       ) : (
-        <>
-          <DaySection title={dayHeading("sabado")} turnos={sabado} onSelect={setSelected} />
-          <DaySection title={dayHeading("domingo")} turnos={domingo} onSelect={setSelected} />
-        </>
+        grupos.map(([dayKey, dayTurnos]) => (
+          <DaySection key={dayKey} title={dayHeading(dayTurnos[0]?.slotStart ?? dayKey)} turnos={dayTurnos} onSelect={setSelected} />
+        ))
       )}
       <BookingDialog
         slot={selected && !selected.reserved ? selected : null}
         open={Boolean(selected && !selected.reserved)}
+        params={params}
         onOpenChange={(open) => { if (!open) setSelected(null); }}
         onBooked={() => { void load(); }}
+      />
+      <GestionarReservaDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        params={params}
+        turnos={turnos}
+        onChanged={() => { void load(); }}
       />
     </div>
   );
