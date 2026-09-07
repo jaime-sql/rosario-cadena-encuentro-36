@@ -3,4 +3,4 @@
 :HL["/rosario-cadena-encuentro-36/_next/static/media/68d403cf9f2c68c5-s.p.20at88_q9f_kt.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 :HL["/rosario-cadena-encuentro-36/logos/encuentros-conyugales.jpg","image"]
 :HL["/rosario-cadena-encuentro-36/logos/unidad-liturgia-oracion.jpg","image"]
-0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"-0VdkxCQ6PXp6NVud5WXN"}
+0:{"tree":{"name":"","param":null,"prefetchHints":4176,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":4256,"slots":null}}},"staleTime":300,"buildId":"0ap480b0gzx5Kvhnx_0UC"}
